@@ -169,10 +169,11 @@ export async function geminiAgent(
   prompt: string,
   state: WorkspaceState,
 ): Promise<GeminiPlanResult | null> {
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY?.trim();
   if (!apiKey) return null;
 
   const plannerPrompt = buildPlannerPrompt(prompt, state);
+  const errors: string[] = [];
   for (const model of GEMINI_MODELS) {
     try {
       const result = await callGemini(model, plannerPrompt, apiKey);
@@ -183,9 +184,9 @@ export async function geminiAgent(
         plannerPrompt,
         rawResponse: result.rawResponse,
       };
-    } catch {
-      // next model, then deterministic
+    } catch (error) {
+      errors.push(`${model}: ${error instanceof Error ? error.message : "failed"}`);
     }
   }
-  return null;
+  throw new Error(errors.slice(0, 3).join(" · ") || "Gemini failed");
 }

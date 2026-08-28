@@ -120,7 +120,7 @@ export function resetStore(): AppStore {
 }
 
 export function isGeminiConfigured() {
-  return Boolean(process.env.GEMINI_API_KEY);
+  return Boolean(process.env.GEMINI_API_KEY?.trim());
 }
 
 export function getSnapshot(): Snapshot {

@@ -217,37 +217,36 @@ export async function runAgent(prompt: string): Promise<{
   let model: string | null = null;
   let plannerPrompt = buildPlannerPrompt(trimmed, state);
   let rawResponse: string | null = null;
+  let fallbackReason: string | null = null;
 
-  if (isCleanupPrompt(trimmed)) {
-    actions = cleanupPlan(state);
-    plannerPrompt =
-      "Deterministic cleanup planner so the 60-second demo always hits read → edit → move → delete → reschedule.\n\n" +
-      buildPlannerPrompt(trimmed, state);
-    reply = fallbackReply(trimmed, actions);
-  } else {
-    try {
-      const gemini = await geminiAgent(trimmed, state);
-      if (gemini) {
-        actions = gemini.actions;
-        reply = gemini.reply;
-        model = gemini.model;
-        plannerPrompt = gemini.plannerPrompt;
-        rawResponse = gemini.rawResponse;
-        modeUsed = "gemini";
-      }
-    } catch {
-      actions = [];
+  try {
+    const gemini = await geminiAgent(trimmed, state);
+    if (gemini) {
+      actions = gemini.actions;
+      reply = gemini.reply;
+      model = gemini.model;
+      plannerPrompt = gemini.plannerPrompt;
+      rawResponse = gemini.rawResponse;
+      modeUsed = "gemini";
     }
+  } catch (error) {
+    fallbackReason = error instanceof Error ? error.message : "Gemini failed.";
+    actions = [];
+  }
 
-    if (modeUsed !== "gemini") {
-      actions = deterministicAgent(trimmed, getStore().workspace);
-      modeUsed = "deterministic";
-      model = null;
-      rawResponse = null;
-      plannerPrompt =
-        "Deterministic planner (Gemini key missing or the model failed).\n\n" +
-        buildPlannerPrompt(trimmed, getStore().workspace);
+  if (modeUsed !== "gemini") {
+    actions = isCleanupPrompt(trimmed)
+      ? cleanupPlan(getStore().workspace)
+      : deterministicAgent(trimmed, getStore().workspace);
+    modeUsed = "deterministic";
+    model = null;
+    rawResponse = null;
+    if (!fallbackReason) {
+      fallbackReason = process.env.GEMINI_API_KEY?.trim()
+        ? "Gemini returned nothing."
+        : "GEMINI_API_KEY is not set on this host (Vercel env or .env.local).";
     }
+    plannerPrompt = `Deterministic planner. ${fallbackReason}\n\n` + buildPlannerPrompt(trimmed, getStore().workspace);
   }
 
   const booked = meetingFromPrompt(trimmed);
@@ -316,6 +315,7 @@ export async function runAgent(prompt: string): Promise<{
     model,
     plannerPrompt,
     rawResponse,
+    fallbackReason,
     decisions: toDecisions(actions),
   };
 

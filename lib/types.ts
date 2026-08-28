@@ -110,6 +110,7 @@ export type PlannerTrace = {
   model: string | null;
   plannerPrompt: string;
   rawResponse: string | null;
+  fallbackReason: string | null;
   decisions: ToolDecision[];
 };
 

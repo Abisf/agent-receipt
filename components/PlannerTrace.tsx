@@ -27,7 +27,9 @@ export function PlannerTraceView({ trace }: { trace: PlannerTrace | null }) {
       <p className="mb-3 text-[12px] leading-relaxed text-slate-400">
         {trace.modeUsed === "gemini"
           ? `Real Gemini call (${trace.model}). Tools below are what the model chose.`
-          : "Deterministic fallback — Gemini was missing or failed. This is a script, not the model."}
+          : trace.fallbackReason
+            ? `Deterministic. ${trace.fallbackReason}`
+            : "Deterministic fallback — Gemini was missing or failed. This is a script, not the model."}
       </p>
       {trace.decisions.length === 0 ? (
         <p className="rounded-lg border border-dashed border-white/15 bg-white/5 px-3 py-2 text-[12px] text-slate-400">

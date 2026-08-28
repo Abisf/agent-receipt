@@ -75,8 +75,8 @@ export function AgentPanel({
         <p className="text-[12px] text-emerald-300">Logging every action to the receipt…</p>
       ) : (
         <p className="text-[12px] text-slate-500">
-          Last planner: {modeUsed === "gemini" ? "Gemini" : "deterministic fallback"}. Demo still
-          runs if the model is offline.
+          Last planner: {modeUsed === "gemini" ? "Gemini" : "deterministic fallback"}.
+          {modeUsed !== "gemini" ? " Gemini only runs when GEMINI_API_KEY is set on this host." : ""}
         </p>
       )}
 

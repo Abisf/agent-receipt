@@ -1,4 +1,5 @@
 import { DEMO_PROMPT } from "./format";
+// Vercel git-connect probe: 2026-08-28
 import { buildPlannerPrompt, geminiAgent } from "./gemini";
 import { getSnapshot, getStore, saveStore } from "./state";
 import { executePlannedAction } from "./tools";

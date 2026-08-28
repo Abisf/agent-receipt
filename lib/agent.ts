@@ -97,8 +97,52 @@ function meetingFromPrompt(prompt: string): PlannedAction | null {
   };
 }
 
+function customerNameFromPrompt(prompt: string): string | null {
+  if (!/customer/i.test(prompt)) return null;
+  if (!/\b(add|create|new|append|insert|put)\b/i.test(prompt)) return null;
+
+  const patterns = [
+    /\badd\s+["']?([^"'\n]+?)["']?\s+as\s+an?\s+customer/i,
+    /\b(?:named|called)\s+["']?([^"'\n]+?)["']?(?:\s+with\s+|\s+as\s+|[.?!]|$)/i,
+    /\b(?:add|create|put|insert|append)(?:\s+a|\s+the)?(?:\s+new)?\s+customer(?:\s+named|\s+called|\s+for)?\s+["']?([^"'\n]+?)["']?(?:\s+to\s+|\s+with\s+|\s+as\s+|[.?!]|$)/i,
+    /\b(?:add|put|append)\s+["']?([^"'\n]+?)["']?\s+to\s+(?:the\s+)?customer/i,
+  ];
+
+  for (const re of patterns) {
+    const match = prompt.match(re);
+    if (!match?.[1]) continue;
+    let name = match[1].trim().replace(/[?.!,]+$/g, "").trim();
+    name = name.replace(/^(named|called|for)\s+/i, "");
+    name = name.replace(/\s+(as|with)\s+.+$/i, "");
+    if (!name || /^to\b/i.test(name) || name.toLowerCase() === "list") continue;
+    return name.slice(0, 48).trim();
+  }
+  return "New Customer";
+}
+
+function customerFromPrompt(prompt: string, state: WorkspaceState): PlannedAction | null {
+  const name = customerNameFromPrompt(prompt);
+  if (!name) return null;
+  const csv = findFile(state, "customer-list.csv");
+  if (!csv) return null;
+
+  let status = "active";
+  if (/follow/i.test(prompt)) status = "follow-up";
+
+  const lines = csv.content.replace(/\s+$/, "").split(/\r?\n/);
+  const already = lines.some((line) => line.toLowerCase().startsWith(`${name.toLowerCase()},`));
+  if (already) return null;
+
+  const newContent = `${lines.join("\n")}\n${name},${status}\n`;
+  return {
+    tool: "editFile",
+    args: { fileId: csv.id, newContent },
+    reason: `Added ${name} to customer-list.csv.`,
+  };
+}
+
 export function wantsWorkspaceActions(prompt: string) {
-  return /launch|clean|ship|file|task|calendar|schedule|reschedule|move|delete|edit|read|create|event|folder|review|qa|meet|meeting|call|book|tomorrow|obsolete|rename/i.test(
+  return /launch|clean|ship|file|task|calendar|schedule|reschedule|move|delete|edit|read|create|event|folder|review|qa|meet|meeting|call|book|tomorrow|obsolete|rename|customer|csv/i.test(
     prompt,
   );
 }
@@ -107,6 +151,8 @@ export function deterministicAgent(prompt: string, state: WorkspaceState): Plann
   if (isCleanupPrompt(prompt)) return cleanupPlan(state);
   const meeting = meetingFromPrompt(prompt);
   if (meeting) return [meeting];
+  const customer = customerFromPrompt(prompt, state);
+  if (customer) return [customer];
   if (!wantsWorkspaceActions(prompt)) return [];
   return cleanupPlan(state);
 }
@@ -114,6 +160,17 @@ export function deterministicAgent(prompt: string, state: WorkspaceState): Plann
 function fallbackReply(prompt: string, actions: PlannedAction[]) {
   if (actions.length === 0) {
     return `I can read, edit, move, and delete files; update tasks; and schedule events. Every call is logged on the receipt. Try: “${DEMO_PROMPT}”`;
+  }
+  if (
+    actions.some(
+      (action) =>
+        action.tool === "editFile" &&
+        /customer-list|name,status/i.test(
+          String(action.args.newContent ?? action.args.content ?? action.reason ?? ""),
+        ),
+    )
+  ) {
+    return `I added the customer to customer-list.csv. Open that file on the left to see the new row — undo from the receipt restores the previous CSV.`;
   }
   if (isCleanupPrompt(prompt)) {
     return "I’ll inspect the launch plan, change the ship date to Friday, move the demo script to Ready, delete obsolete notes, and pull Launch Review to 9:00 AM. Reads are logged without undo; edits, moves, deletes, and reschedules can be reversed from the receipt.";
@@ -203,6 +260,34 @@ export async function runAgent(prompt: string): Promise<{
       ),
       booked,
     ];
+  }
+
+  const csv = findFile(getStore().workspace, "customer-list.csv");
+  const customer = customerFromPrompt(trimmed, getStore().workspace);
+  const customerName = customerNameFromPrompt(trimmed);
+  const editedCsv = actions.some((action) => {
+    if (action.tool !== "editFile") return false;
+    const id = String(action.args.fileId ?? action.args.id ?? action.args.name ?? "");
+    const content = String(action.args.newContent ?? action.args.content ?? "");
+    const targetsCsv =
+      id === csv?.id ||
+      id.toLowerCase().includes("customer-list") ||
+      /name\s*,\s*status/i.test(content);
+    const hasName = !customerName || content.toLowerCase().includes(customerName.toLowerCase());
+    return Boolean(content) && targetsCsv && hasName;
+  });
+  if (customer && !editedCsv) {
+    actions = [
+      ...actions.filter((action) => {
+        if (action.tool !== "editFile") return true;
+        const id = String(action.args.fileId ?? action.args.id ?? action.args.name ?? "");
+        return id !== csv?.id && !id.toLowerCase().includes("customer-list");
+      }),
+      customer,
+    ];
+    if (reply && !/customer-list/i.test(reply)) {
+      reply = `${reply} I also added the customer to customer-list.csv.`;
+    }
   }
 
   if (!reply) reply = fallbackReply(trimmed, actions);

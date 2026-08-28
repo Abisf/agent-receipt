@@ -29,6 +29,7 @@ export function summarizeState(state: WorkspaceState) {
       id: f.id,
       name: f.name,
       folder: f.folder,
+      content: f.name.endsWith(".csv") ? f.content : undefined,
       preview: f.content.slice(0, 180),
     })),
     events: state.events.map((e) => ({
@@ -126,6 +127,7 @@ Rules:
   4. deleteFile old-notes.txt
   5. rescheduleEvent Launch Review to 9:00 AM
 - Booking a meeting uses createEvent with title/time/date filled in.
+- Adding or updating a customer means editFile on customer-list.csv. Keep the header "name,status" and append a row like "Acme Corp,active". newContent must be the FULL csv text.
 - editFile newContent must be the FULL new file text.
 - Do not call the same tool on the same entity twice.
 

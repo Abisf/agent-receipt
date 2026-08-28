@@ -47,6 +47,13 @@ function asStatus(value: unknown): TaskStatus | undefined {
   return undefined;
 }
 
+function findWorkspaceFile(fileIdOrName: string) {
+  const files = getStore().workspace.files;
+  const key = fileIdOrName.trim().toLowerCase();
+  if (!key) return undefined;
+  return files.find((f) => f.id === fileIdOrName) || files.find((f) => f.name.toLowerCase() === key);
+}
+
 function clone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
@@ -66,7 +73,7 @@ function fileRecord(file: FileItem) {
 }
 
 export function readFile(fileId: string, reason: string): ReceiptEntry {
-  const file = getStore().workspace.files.find((f) => f.id === fileId);
+  const file = findWorkspaceFile(fileId);
   if (!file) throw new Error(`File not found: ${fileId}`);
   const snapshot = fileRecord(file);
   return createReceipt({
@@ -107,8 +114,7 @@ export function createFile(name: string, content: string, reason: string, folder
 }
 
 export function editFile(fileId: string, newContent: string, reason: string): ReceiptEntry {
-  const store = getStore();
-  const file = store.workspace.files.find((f) => f.id === fileId);
+  const file = findWorkspaceFile(fileId);
   if (!file) throw new Error(`File not found: ${fileId}`);
   const snapshot = clone(file);
   const before = fileRecord(file);
@@ -129,7 +135,7 @@ export function editFile(fileId: string, newContent: string, reason: string): Re
 
 export function renameFile(fileId: string, newName: string, reason: string): ReceiptEntry {
   const store = getStore();
-  const file = store.workspace.files.find((f) => f.id === fileId);
+  const file = findWorkspaceFile(fileId);
   if (!file) throw new Error(`File not found: ${fileId}`);
   const snapshot = clone(file);
   const before = { id: file.id, name: file.name };
@@ -150,7 +156,7 @@ export function renameFile(fileId: string, newName: string, reason: string): Rec
 
 export function moveFile(fileId: string, newFolder: string, reason: string): ReceiptEntry {
   const store = getStore();
-  const file = store.workspace.files.find((f) => f.id === fileId);
+  const file = findWorkspaceFile(fileId);
   if (!file) throw new Error(`File not found: ${fileId}`);
   const snapshot = clone(file);
   const before = { id: file.id, name: file.name, folder: file.folder };
@@ -171,11 +177,11 @@ export function moveFile(fileId: string, newFolder: string, reason: string): Rec
 
 export function deleteFile(fileId: string, reason: string): ReceiptEntry {
   const store = getStore();
-  const file = store.workspace.files.find((f) => f.id === fileId);
+  const file = findWorkspaceFile(fileId);
   if (!file) throw new Error(`File not found: ${fileId}`);
   const snapshot = clone(file);
   const before = fileRecord(file);
-  store.workspace.files = store.workspace.files.filter((f) => f.id !== fileId);
+  store.workspace.files = store.workspace.files.filter((f) => f.id !== file.id);
   saveStore();
   return createReceipt({
     tool: "deleteFile",
@@ -365,7 +371,7 @@ export function executePlannedAction(action: PlannedAction): ReceiptEntry {
   let entry: ReceiptEntry;
   switch (tool) {
     case "readFile":
-      entry = readFile(asString(args.fileId) || asString(args.id), reason);
+      entry = readFile(asString(args.fileId) || asString(args.id) || asString(args.name), reason);
       break;
     case "createFile":
       entry = createFile(
@@ -376,7 +382,11 @@ export function executePlannedAction(action: PlannedAction): ReceiptEntry {
       );
       break;
     case "editFile":
-      entry = editFile(asString(args.fileId) || asString(args.id), asString(args.newContent) || asString(args.content), reason);
+      entry = editFile(
+        asString(args.fileId) || asString(args.id) || asString(args.name),
+        asString(args.newContent) || asString(args.content),
+        reason,
+      );
       break;
     case "renameFile":
       entry = renameFile(asString(args.fileId) || asString(args.id), asString(args.newName) || asString(args.name), reason);

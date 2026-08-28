@@ -21,6 +21,19 @@ See **[SPEC.md](./SPEC.md)** for the full product spec (problem, tools, receipt 
 5. Click launch-plan.md on the left; contents should say Friday.
 6. Click **Restore** on the deleted file. `old-notes.txt` reappears. The receipt stays, marked Undone.
 
+## Example prompts
+
+Click the chips in the UI, or paste these:
+
+| Chip | Prompt | What you should see |
+|---|---|---|
+| Launch cleanup | Clean up the launch workspace, update the launch plan to say we ship Friday, remove obsolete files, and move tomorrow's launch review to 9 AM. | 5 receipts: read → edit → move → delete → reschedule. Undo / Restore work. |
+| Book a meeting | Add a 9pm meeting tomorrow with my lead developer. | New calendar event. Undo removes it. |
+| Add a customer | Add customer Contoso to the customer list. | `customer-list.csv` gets a new row. Undo restores the file. |
+| Just say hi | hi, what can you do? | Chat only. No tools, no receipts. |
+
+The cleanup prompt is the 60-second judging story. The others show Gemini (when the key is set) still goes through the same interceptor.
+
 ## How to run locally
 
 ```bash

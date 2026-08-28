@@ -48,3 +48,22 @@ export function formatClock(iso: string) {
 export const DEMO_PROMPT =
   "Clean up the launch workspace, update the launch plan to say we ship Friday, remove obsolete files, and move tomorrow's launch review to 9 AM.";
 
+export const EXAMPLE_PROMPTS = [
+  {
+    label: "Launch cleanup",
+    prompt: DEMO_PROMPT,
+  },
+  {
+    label: "Book a meeting",
+    prompt: "Add a 9pm meeting tomorrow with my lead developer.",
+  },
+  {
+    label: "Add a customer",
+    prompt: "Add customer Contoso to the customer list.",
+  },
+  {
+    label: "Just say hi",
+    prompt: "hi, what can you do?",
+  },
+] as const;
+

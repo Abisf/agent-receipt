@@ -1,6 +1,6 @@
 "use client";
 
-import { DEMO_PROMPT } from "@/lib/format";
+import { DEMO_PROMPT, EXAMPLE_PROMPTS } from "@/lib/format";
 import type { AgentMode } from "@/lib/types";
 
 export function AgentPanel({
@@ -12,7 +12,6 @@ export function AgentPanel({
   fallbackReason,
   onPromptChange,
   onRun,
-  onPreset,
 }: {
   prompt: string;
   running: boolean;
@@ -22,7 +21,6 @@ export function AgentPanel({
   fallbackReason: string | null;
   onPromptChange: (value: string) => void;
   onRun: () => void;
-  onPreset: () => void;
 }) {
   return (
     <div className="space-y-3">
@@ -55,14 +53,27 @@ export function AgentPanel({
         className="w-full resize-none rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm leading-relaxed text-white placeholder:text-slate-500 outline-none ring-emerald-400/0 transition focus:border-emerald-400/40 focus:ring-4 focus:ring-emerald-400/10"
       />
 
+      <div className="flex flex-wrap gap-1.5">
+        {EXAMPLE_PROMPTS.map((example) => {
+          const active = prompt === example.prompt;
+          return (
+            <button
+              key={example.label}
+              type="button"
+              onClick={() => onPromptChange(example.prompt)}
+              className={`rounded-full border px-2.5 py-1 text-[11px] font-medium transition ${
+                active
+                  ? "border-emerald-400/40 bg-emerald-400/15 text-emerald-200"
+                  : "border-white/15 bg-white/5 text-slate-300 hover:bg-white/10"
+              }`}
+            >
+              {example.label}
+            </button>
+          );
+        })}
+      </div>
+
       <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={onPreset}
-          className="rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-xs font-medium text-slate-200 transition hover:bg-white/10"
-        >
-          Use demo preset
-        </button>
         <button
           type="button"
           onClick={onRun}

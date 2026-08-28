@@ -154,7 +154,6 @@ export function Dashboard({ initial }: { initial: Snapshot }) {
               fallbackReason={latestRun?.fallbackReason ?? null}
               onPromptChange={setPrompt}
               onRun={runAgent}
-              onPreset={() => setPrompt(DEMO_PROMPT)}
             />
             <AgentReply messages={conversation} running={running} />
             <PlannerTraceView trace={latestRun} />

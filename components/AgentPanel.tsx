@@ -9,6 +9,7 @@ export function AgentPanel({
   error,
   modeUsed,
   geminiConfigured,
+  fallbackReason,
   onPromptChange,
   onRun,
   onPreset,
@@ -18,6 +19,7 @@ export function AgentPanel({
   error: string | null;
   modeUsed: AgentMode;
   geminiConfigured: boolean;
+  fallbackReason: string | null;
   onPromptChange: (value: string) => void;
   onRun: () => void;
   onPreset: () => void;
@@ -75,8 +77,11 @@ export function AgentPanel({
         <p className="text-[12px] text-emerald-300">Logging every action to the receipt…</p>
       ) : (
         <p className="text-[12px] text-slate-500">
-          Last planner: {modeUsed === "gemini" ? "Gemini" : "deterministic fallback"}.
-          {modeUsed !== "gemini" ? " Gemini only runs when GEMINI_API_KEY is set on this host." : ""}
+          {modeUsed === "gemini"
+            ? "Last planner: Gemini."
+            : geminiConfigured
+              ? `Last planner: deterministic fallback.${fallbackReason ? ` ${fallbackReason}` : ""}`
+              : "Last planner: deterministic. This host has no GEMINI_API_KEY — add it in Vercel Settings → Environment Variables, then Redeploy."}
         </p>
       )}
 

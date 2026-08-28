@@ -151,6 +151,7 @@ export function Dashboard({ initial }: { initial: Snapshot }) {
               error={error}
               modeUsed={modeUsed}
               geminiConfigured={geminiConfigured}
+              fallbackReason={latestRun?.fallbackReason ?? null}
               onPromptChange={setPrompt}
               onRun={runAgent}
               onPreset={() => setPrompt(DEMO_PROMPT)}
